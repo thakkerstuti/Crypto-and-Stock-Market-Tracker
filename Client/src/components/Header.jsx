@@ -12,10 +12,10 @@ const Header = ({ menu, toggleMenu, handleLogout }) => {
 	const { theme, setTheme } = useTheme();
 
 	return (
-		<div className="bg-white shadow-md h-16 flex justify-between items-center px-4 select-none z-40 sticky top-0 dark:bg-gray-800 dark:border-b dark:border-gray-800">
+		<div className="glass-panel h-[72px] flex justify-between items-center px-6 select-none z-40 sticky top-0 backdrop-blur-3xl border-b border-gray-200/50 dark:border-slate-800/50 transition-colors duration-300 shadow-sm">
 			<NavLink
 				to="/"
-				className="text-2xl font-bold text-blue-700 dark:text-blue-500"
+				className="text-2xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 hover:scale-[1.02] transition-transform"
 			>
 				CryptoTrack
 			</NavLink>
@@ -63,7 +63,7 @@ const Header = ({ menu, toggleMenu, handleLogout }) => {
 
 						<button
 							onClick={handleLogout}
-							className="rounded-sm px-3 py-2 text-sm font-medium cursor-pointer text-white bg-blue-600 hover:bg-blue-700"
+							className="rounded-lg px-4 py-2 text-sm font-semibold cursor-pointer text-white bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 shadow-md shadow-rose-500/20 transition-all hover:-translate-y-0.5"
 						>
 							Logout
 						</button>
@@ -86,10 +86,10 @@ const Header = ({ menu, toggleMenu, handleLogout }) => {
 						<NavLink
 							to="signup"
 							className={({ isActive }) =>
-								`rounded-sm px-3 py-2 text-sm font-medium cursor-pointer text-white ${
+								`rounded-lg px-4 py-2 text-sm font-semibold cursor-pointer text-white shadow-md shadow-blue-500/20 transition-all hover:-translate-y-0.5 ${
 									isActive
-										? "bg-blue-700"
-										: "bg-blue-600 hover:bg-blue-700"
+										? "bg-gradient-to-r from-indigo-700 to-blue-800"
+										: "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
 								}`
 							}
 						>
