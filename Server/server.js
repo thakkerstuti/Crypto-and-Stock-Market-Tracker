@@ -18,6 +18,53 @@ app.use(express.json());
 const passport = require("./auth");
 app.use(passport.initialize());
 
+// Backend Cache for CoinGecko Proxy
+const coinCache = new Map();
+const CACHE_DURATION = 60 * 1000;
+
+app.get("/api/coins", async (req, res) => {
+	const { ids, vs_currency = "usd" } = req.query;
+	const cacheKey = `${ids}-${vs_currency}`;
+	
+	const cachedData = coinCache.get(cacheKey);
+	if (cachedData && (Date.now() - cachedData.timestamp < CACHE_DURATION)) {
+		return res.json(cachedData.data);
+	}
+
+	try {
+		let url = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=${vs_currency}&order=market_cap_desc&sparkline=false`;
+		if (ids) {
+			url += `&ids=${ids}`;
+		} else {
+			url += `&per_page=100&page=1`;
+		}
+
+		const response = await fetch(url);
+		
+		if (response.status === 429) {
+			// If backend is also rate limited, serve stale cache if available
+			if (cachedData) return res.json(cachedData.data);
+			return res.status(429).json({ error: "Rate limit exceeded. Please try again later." });
+		}
+
+		if (!response.ok) throw new Error("CoinGecko API error");
+
+		const data = await response.json();
+		
+		// Update cache
+		coinCache.set(cacheKey, {
+			data,
+			timestamp: Date.now()
+		});
+
+		return res.json(data);
+	} catch (err) {
+		console.error("Proxy Error:", err);
+		if (cachedData) return res.json(cachedData.data);
+		return res.status(500).json({ error: "Failed to fetch coin data" });
+	}
+});
+
 app.get("/", (req, res) => {
 	return res.send("API is running");
 });

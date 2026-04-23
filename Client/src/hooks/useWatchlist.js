@@ -19,7 +19,7 @@ export default function useWatchlist(watchlist) {
 			try {
 				const coinIds = watchlist.join(",");
 				const res = await fetch(
-					`https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${coinIds}&order=market_cap_desc&sparkline=false`
+					`http://localhost:3000/api/coins?ids=${coinIds}`
 				);
 				if (!res.ok) throw new Error("An error occured");
 				const data = await res.json();

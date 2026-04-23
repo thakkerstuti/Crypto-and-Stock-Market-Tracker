@@ -6,6 +6,7 @@ import CoinGeckoAttribution from "../components/CoinGeckoAttribution";
 import { useAuth } from "../context/AuthContext";
 import useTopCoins from "../hooks/useTopCoins";
 import Searchbar from "../components/Searchbar";
+import { motion } from "framer-motion";
 
 const Home = ({
 	watchlist,
@@ -26,26 +27,58 @@ const Home = ({
 	);
 
 	return (
-		<>
+		<motion.div 
+			initial={{ opacity: 0 }}
+			animate={{ opacity: 1 }}
+			className="min-h-screen pb-24"
+		>
 			{!form ? (
-				<div className="p-4 pb-24 font-sans ">
-					<div className="w-full max-w-3xl mx-auto text-center flex flex-col items-center mt-7 sm:mt-12 mb-12 gap-4">
-						<h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 dark:from-blue-400 dark:via-indigo-400 dark:to-purple-500 drop-shadow-sm pb-2">
-							Track Cryptocurrency Prices
-						</h1>
-						<p className="text-md sm:text-lg text-gray-600 dark:text-gray-400">
-							Stay updated with real-time cryptocurrency prices
-							and track your portfolio.
-						</p>
-						<Searchbar
-							searchValue={search}
-							setSearchValue={setSearch}
-							placeholder="Search crypto.."
-						/>
-						<CoinGeckoAttribution />
+				<div className="p-4 font-sans max-w-7xl mx-auto">
+					<div className="w-full text-center flex flex-col items-center mt-12 sm:mt-20 mb-16 gap-6">
+						<motion.div
+							initial={{ y: 20, opacity: 0 }}
+							animate={{ y: 0, opacity: 1 }}
+							transition={{ delay: 0.2 }}
+						>
+							<h1 className="text-5xl sm:text-6xl md:text-7xl font-extrabold tracking-tight mb-4">
+								<span className="premium-gradient-text">Track Crypto</span>
+								<br />
+								<span className="text-slate-900 dark:text-white">With Precision</span>
+							</h1>
+							<p className="text-lg sm:text-xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto leading-relaxed">
+								The most advanced real-time cryptocurrency tracking platform. 
+								Manage your portfolio and stay ahead of the market.
+							</p>
+						</motion.div>
+
+						<motion.div
+							initial={{ y: 20, opacity: 0 }}
+							animate={{ y: 0, opacity: 1 }}
+							transition={{ delay: 0.4 }}
+							className="w-full max-w-2xl mt-4"
+						>
+							<Searchbar
+								searchValue={search}
+								setSearchValue={setSearch}
+								placeholder="Search 10,000+ cryptocurrencies..."
+							/>
+						</motion.div>
+						
+						<motion.div
+							initial={{ opacity: 0 }}
+							animate={{ opacity: 1 }}
+							transition={{ delay: 0.6 }}
+						>
+							<CoinGeckoAttribution />
+						</motion.div>
 					</div>
 
-					<div className="w-full max-w-6xl mx-auto overflow-x-auto [scrollbar-width:none]">
+					<motion.div 
+						initial={{ y: 40, opacity: 0 }}
+						animate={{ y: 0, opacity: 1 }}
+						transition={{ delay: 0.6, duration: 0.5 }}
+						className="w-full glass-card rounded-3xl overflow-hidden mb-12"
+					>
 						<Table
 							loading={loading}
 							error={error}
@@ -55,7 +88,7 @@ const Home = ({
 							message={""}
 							toggleForm={toggleForm}
 						/>
-					</div>
+					</motion.div>
 				</div>
 			) : isAuthenticated ? (
 				<Form
@@ -68,7 +101,7 @@ const Home = ({
 			) : (
 				<LoginWarning toggleForm={toggleForm} />
 			)}
-		</>
+		</motion.div>
 	);
 };
 

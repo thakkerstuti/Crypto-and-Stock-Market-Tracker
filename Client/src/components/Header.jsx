@@ -6,41 +6,53 @@ import { useAuth } from "../context/AuthContext";
 import BrightnessMediumIcon from "@mui/icons-material/BrightnessMedium";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
 import useTheme from "../hooks/useTheme";
+import { motion } from "framer-motion";
 
 const Header = ({ menu, toggleMenu, handleLogout }) => {
 	const { isAuthenticated } = useAuth();
 	const { theme, setTheme } = useTheme();
 
 	return (
-		<div className="glass-panel h-[72px] flex justify-between items-center px-6 select-none z-40 sticky top-0 backdrop-blur-3xl border-b border-gray-200/50 dark:border-slate-800/50 transition-colors duration-300 shadow-sm">
+		<motion.div 
+			initial={{ y: -100 }}
+			animate={{ y: 0 }}
+			className="glass-header h-[72px] flex justify-between items-center px-6 select-none transition-all duration-300"
+		>
 			<NavLink
 				to="/"
-				className="text-2xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 hover:scale-[1.02] transition-transform"
+				className="text-2xl font-extrabold tracking-tight premium-gradient-text hover:scale-[1.05] transition-transform duration-300 flex items-center gap-2"
 			>
+				<motion.div
+					animate={{ rotate: [0, 360] }}
+					transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+					className="w-8 h-8 bg-gradient-to-tr from-blue-600 to-indigo-600 rounded-lg shadow-lg shadow-blue-500/20"
+				/>
 				CryptoTrack
 			</NavLink>
-			<ul className="hidden sm:flex items-center gap-4">
+			
+			<ul className="hidden sm:flex items-center gap-2">
 				<NavLink
 					to="/"
 					className={({ isActive }) =>
-						`rounded-sm px-3 py-2 text-sm font-medium ${
+						`px-4 py-2 text-sm font-semibold rounded-xl transition-all duration-300 ${
 							isActive
-								? "bg-blue-200 text-blue-700 dark:bg-blue-700/20 dark:text-gray-100"
-								: "dark:text-gray-300 dark:hover:text-white dark:hover:bg-blue-500/1	0 text-gray-700 hover:bg-blue-50 hover:text-blue-700 cursor-pointer"
+								? "bg-blue-600/10 text-blue-600 dark:bg-blue-400/10 dark:text-blue-400 shadow-sm"
+								: "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
 						}`
 					}
 				>
 					Home
 				</NavLink>
+				
 				{isAuthenticated ? (
 					<>
 						<NavLink
 							to="dashboard"
 							className={({ isActive }) =>
-								`rounded-sm px-3 py-2 text-sm font-medium ${
+								`px-4 py-2 text-sm font-semibold rounded-xl transition-all duration-300 ${
 									isActive
-										? "bg-blue-200 text-blue-700 dark:bg-blue-700/20 dark:text-gray-100"
-										: "dark:text-gray-300 dark:hover:text-white dark:hover:bg-blue-500/10 text-gray-700 hover:bg-blue-50 hover:text-blue-700 cursor-pointer"
+										? "bg-blue-600/10 text-blue-600 dark:bg-blue-400/10 dark:text-blue-400 shadow-sm"
+										: "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
 								}`
 							}
 						>
@@ -49,97 +61,91 @@ const Header = ({ menu, toggleMenu, handleLogout }) => {
 						<NavLink
 							to="watchlist"
 							className={({ isActive }) =>
-								`rounded-sm px-3 py-2 text-sm font-medium ${
+								`px-4 py-2 text-sm font-semibold rounded-xl transition-all duration-300 ${
 									isActive
-										? "bg-blue-200 text-blue-700 dark:bg-blue-700/20 dark:text-gray-100"
-										: "dark:text-gray-300 dark:hover:text-white dark:hover:bg-blue-500/10 text-gray-700 hover:bg-blue-50 hover:text-blue-700 cursor-pointer"
+										? "bg-blue-600/10 text-blue-600 dark:bg-blue-400/10 dark:text-blue-400 shadow-sm"
+										: "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
 								}`
 							}
 						>
 							Watchlist
 						</NavLink>
 
+						<div className="h-6 w-px bg-slate-200 dark:bg-slate-800 mx-2" />
+
 						<CurrencySelector />
 
-						<button
+						<motion.button
+							whileHover={{ scale: 1.05 }}
+							whileTap={{ scale: 0.95 }}
 							onClick={handleLogout}
-							className="rounded-lg px-4 py-2 text-sm font-semibold cursor-pointer text-white bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 shadow-md shadow-rose-500/20 transition-all hover:-translate-y-0.5"
+							className="premium-button ml-2 px-5 py-2 text-sm font-bold text-white bg-gradient-to-r from-rose-500 to-red-600 rounded-xl shadow-lg shadow-rose-500/20"
 						>
 							Logout
-						</button>
+						</motion.button>
 					</>
 				) : (
 					<>
 						<NavLink
 							to="login"
 							className={({ isActive }) =>
-								`rounded-sm px-3 py-2 text-sm font-medium cursor-pointer ${
+								`px-4 py-2 text-sm font-semibold rounded-xl transition-all duration-300 ${
 									isActive
-										? "bg-blue-200 text-blue-700 dark:bg-blue-700/20 dark:text-gray-100"
-										: "dark:text-gray-300 dark:hover:text-white dark:hover:bg-blue-500/10 text-gray-700 hover:bg-blue-50 hover:text-blue-700 cursor-pointer"
+										? "bg-blue-600/10 text-blue-600 dark:bg-blue-400/10 dark:text-blue-400"
+										: "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
 								}`
 							}
 						>
 							Login
 						</NavLink>
+						<div className="h-6 w-px bg-slate-200 dark:bg-slate-800 mx-2" />
 						<CurrencySelector />
 						<NavLink
 							to="signup"
-							className={({ isActive }) =>
-								`rounded-lg px-4 py-2 text-sm font-semibold cursor-pointer text-white shadow-md shadow-blue-500/20 transition-all hover:-translate-y-0.5 ${
-									isActive
-										? "bg-gradient-to-r from-indigo-700 to-blue-800"
-										: "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
-								}`
-							}
+							className="premium-button ml-2 px-6 py-2 text-sm font-bold text-white bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl shadow-lg shadow-blue-500/25"
 						>
 							Sign Up
 						</NavLink>
 					</>
 				)}
-				<div
-					className={`flex justify-center items-center rounded-full p-2 cursor-pointer hover:bg-gray-100 transition-all duration-200 dark:text-white dark:hover:bg-gray-900`}
-					onClick={() => {
-						theme === "light"
-							? setTheme("dark")
-							: setTheme("light");
-					}}
+
+				<motion.div
+					whileHover={{ rotate: 15, scale: 1.1 }}
+					whileTap={{ scale: 0.9 }}
+					className="ml-2 flex justify-center items-center w-10 h-10 rounded-xl cursor-pointer bg-slate-100/50 hover:bg-slate-100 dark:bg-slate-800/50 dark:hover:bg-slate-800 transition-all duration-200"
+					onClick={() => setTheme(theme === "light" ? "dark" : "light")}
 				>
 					{theme === "light" ? (
-						<BrightnessMediumIcon sx={{ color: "#fcba03" }} />
+						<BrightnessMediumIcon sx={{ color: "#f59e0b", fontSize: 20 }} />
 					) : (
-						<DarkModeIcon />
+						<DarkModeIcon sx={{ fontSize: 20 }} />
 					)}
-				</div>
+				</motion.div>
 			</ul>
-			<div className="flex gap-3 sm:hidden items-center ml-4">
-				<div
-					className={`flex justify-center items-center rounded-full p-2 cursor-pointer hover:bg-gray-100 transition-all duration-200 dark:text-white dark:hover:bg-gray-900`}
-					onClick={() => {
-						theme === "light"
-							? setTheme("dark")
-							: setTheme("light");
-					}}
+
+			{/* Mobile Navigation */}
+			<div className="flex gap-3 sm:hidden items-center">
+				<motion.div
+					whileTap={{ scale: 0.9 }}
+					className="w-10 h-10 flex justify-center items-center rounded-xl cursor-pointer bg-slate-100/50 dark:bg-slate-800/50"
+					onClick={() => setTheme(theme === "light" ? "dark" : "light")}
 				>
 					{theme === "light" ? (
-						<BrightnessMediumIcon sx={{ color: "#fcba03" }} />
+						<BrightnessMediumIcon sx={{ color: "#f59e0b", fontSize: 20 }} />
 					) : (
-						<DarkModeIcon />
+						<DarkModeIcon sx={{ fontSize: 20 }} />
 					)}
-				</div>
+				</motion.div>
 				<CurrencySelector />
-				<div
-					className="sm:hidden hover:bg-blue-100 p-3 flex justify-center items-center rounded-3xl cursor-pointer dark:text-white dark:hover:bg-blue-900/20"
+				<motion.div
+					whileTap={{ scale: 0.9 }}
+					className="w-10 h-10 flex justify-center items-center rounded-xl cursor-pointer bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400"
 					onClick={toggleMenu}
 				>
-					{menu ? (
-						<CloseIcon fontSize="small" />
-					) : (
-						<MenuIcon fontSize="small" />
-					)}
-				</div>
+					{menu ? <CloseIcon /> : <MenuIcon />}
+				</motion.div>
 			</div>
-		</div>
+		</motion.div>
 	);
 };
 
