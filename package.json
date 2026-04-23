@@ -1,0 +1,9 @@
+{
+  "name": "cryptotrack-monorepo",
+  "version": "1.0.0",
+  "scripts": {
+    "build:client": "cd Client && npm install && npm run build",
+    "build:server": "cd Server && npm install",
+    "build": "npm run build:client && npm run build:server"
+  }
+}
