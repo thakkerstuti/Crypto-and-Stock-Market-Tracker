@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import api from "../services/api";
 
 export default function useWatchlist(watchlist) {
 	const [coins, setCoins] = useState([]);
@@ -6,7 +7,7 @@ export default function useWatchlist(watchlist) {
 	const [error, setError] = useState(null);
 
 	useEffect(() => {
-		const searchCoins = async (query) => {
+		const searchCoins = async () => {
 			setLoading(true);
 			setError(null);
 
@@ -18,14 +19,17 @@ export default function useWatchlist(watchlist) {
 
 			try {
 				const coinIds = watchlist.join(",");
-				const res = await fetch(
-					`http://localhost:3000/api/coins?ids=${coinIds}`
-				);
-				if (!res.ok) throw new Error("An error occured");
-				const data = await res.json();
-				setCoins(data);
+				const response = await api.get(`/api/coins`, {
+					params: { ids: coinIds }
+				});
+				setCoins(response.data);
 			} catch (err) {
-				setError(err.message);
+				console.error("Error fetching watchlist coins:", err);
+				if (err.code === 'ERR_NETWORK') {
+					setError("Network error. Please check your server.");
+				} else {
+					setError(err.response?.data?.error || "Failed to fetch watchlist data");
+				}
 			} finally {
 				setLoading(false);
 			}

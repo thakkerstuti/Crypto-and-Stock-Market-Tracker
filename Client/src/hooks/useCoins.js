@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import api from "../services/api";
 
 // Cache object to store coin data and timestamps
 const coinCache = {
@@ -39,19 +40,11 @@ export default function useCoins(portfolio) {
 			}
 
 			try {
-				const res = await fetch(
-					`http://localhost:3000/api/coins?ids=${coinIds}`
-				);
+				const response = await api.get(`/api/coins`, {
+					params: { ids: coinIds }
+				});
 
-				if (res.status === 429) {
-					throw new Error(
-						"Rate limit exceeded. Please wait a moment before adding more coins."
-					);
-				}
-
-				if (!res.ok) throw new Error("An error occured while fetching data");
-
-				const data = await res.json();
+				const data = response.data;
 				
 				// Update cache
 				coinCache.data[cacheKey] = data;
@@ -60,7 +53,14 @@ export default function useCoins(portfolio) {
 				setCoins(data);
 			} catch (err) {
 				console.error("Error fetching coins:", err);
-				setError(err.message === "Failed to fetch" ? "Network error or API rate limit. Please try again in a minute." : err.message);
+				
+				if (err.response?.status === 429) {
+					setError("Rate limit exceeded. Please wait a moment before adding more coins.");
+				} else if (err.code === 'ERR_NETWORK') {
+					setError("Network error. Please check your internet connection or server status.");
+				} else {
+					setError(err.response?.data?.error || "Failed to fetch coin data");
+				}
 			} finally {
 				setLoading(false);
 			}
