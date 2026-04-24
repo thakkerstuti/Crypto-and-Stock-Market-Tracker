@@ -1,13 +1,5 @@
 import { useState, useEffect } from "react";
-import { COINGECKO_TOP_COINS_API } from "../constants";
-
-// Cache object to store top coins data and timestamps
-const topCoinsCache = {
-	data: [],
-	timestamp: 0,
-};
-
-const CACHE_DURATION = 60 * 1000; // 60 seconds
+import api from "../services/api";
 
 export default function useTopCoins() {
 	const [coins, setCoins] = useState([]);
@@ -19,39 +11,12 @@ export default function useTopCoins() {
 			setLoading(true);
 			setError(null);
 
-			// Check if cache is still valid
-			if (
-				topCoinsCache.data.length > 0 &&
-				Date.now() - topCoinsCache.timestamp < CACHE_DURATION
-			) {
-				setCoins(topCoinsCache.data);
-				setLoading(false);
-				return;
-			}
-
 			try {
-				const response = await fetch(COINGECKO_TOP_COINS_API);
-				
-				if (response.status === 429) {
-					throw new Error(
-						"Rate limit exceeded. Please wait a moment."
-					);
-				}
-
-				if (!response.ok) {
-					throw new Error("An error occured while fetching top coins");
-				}
-
-				const data = await response.json();
-				
-				// Update cache
-				topCoinsCache.data = data;
-				topCoinsCache.timestamp = Date.now();
-				
-				setCoins(data);
+				const response = await api.get("/api/coins");
+				setCoins(response.data);
 			} catch (err) {
 				console.error("Error fetching top coins:", err);
-				setError(err.message === "Failed to fetch" ? "Network error or API rate limit. Please try again in a minute." : err.message);
+				setError(err.response?.data?.error || "Failed to fetch coin data");
 			} finally {
 				setLoading(false);
 			}

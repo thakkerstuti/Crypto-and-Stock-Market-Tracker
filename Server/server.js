@@ -4,12 +4,18 @@ const db = require("./db");
 require("dotenv").config();
 const jwt = require("jsonwebtoken");
 const User = require("./models/Users");
+const mockData = require("./mockData.json");
 const PORT = process.env.PORT || 3000;
 const app = express();
 
 app.use(
 	cors({
-		origin: process.env.CLIENT || "https://cryptotrack-ultimez.vercel.app",
+		origin: [
+			process.env.CLIENT,
+			"http://localhost:5173",
+			"http://localhost:5174",
+			"https://cryptotrack-ultimez.vercel.app",
+		].filter(Boolean),
 		credentials: true,
 	})
 );
@@ -20,7 +26,7 @@ app.use(passport.initialize());
 
 // Backend Cache for CoinGecko Proxy
 const coinCache = new Map();
-const CACHE_DURATION = 60 * 1000;
+const CACHE_DURATION = 5 * 60 * 1000;
 
 app.get("/api/coins", async (req, res) => {
 	const { ids, vs_currency = "usd" } = req.query;
@@ -39,12 +45,18 @@ app.get("/api/coins", async (req, res) => {
 			url += `&per_page=100&page=1`;
 		}
 
+		console.log(`Fetching from CoinGecko: ${url}`);
 		const response = await fetch(url);
 		
 		if (response.status === 429) {
+			console.warn("CoinGecko Rate Limit Hit!");
 			// If backend is also rate limited, serve stale cache if available
-			if (cachedData) return res.json(cachedData.data);
-			return res.status(429).json({ error: "Rate limit exceeded. Please try again later." });
+			if (cachedData) {
+				console.log("Serving stale cache due to rate limit");
+				return res.json(cachedData.data);
+			}
+			console.log("Serving mock data due to rate limit");
+			return res.json(mockData);
 		}
 
 		if (!response.ok) throw new Error("CoinGecko API error");
@@ -61,7 +73,8 @@ app.get("/api/coins", async (req, res) => {
 	} catch (err) {
 		console.error("Proxy Error:", err);
 		if (cachedData) return res.json(cachedData.data);
-		return res.status(500).json({ error: "Failed to fetch coin data" });
+		console.log("Serving mock data due to proxy error");
+		return res.json(mockData);
 	}
 });
 
@@ -83,7 +96,7 @@ app.post("/register", async (req, res) => {
 			.status(200)
 			.json({ message: "User Registered Successfully" });
 	} catch (err) {
-		return res.status(500).json(err);
+		return res.status(500).json({ Error: err.message });
 	}
 });
 
@@ -125,7 +138,7 @@ app.get(
 
 			return res.json({ watchlist: user.watchlist });
 		} catch (err) {
-			return res.json(500).json(err);
+			return res.status(500).json({ Error: err.message });
 		}
 	}
 );
@@ -143,7 +156,7 @@ app.get(
 
 			return res.json(user.portfolio);
 		} catch (err) {
-			return res.json(500).json(err);
+			return res.status(500).json({ Error: err.message });
 		}
 	}
 );
@@ -167,7 +180,7 @@ app.put(
 
 			return res.status(200).json({ watchlist: user.watchlist });
 		} catch (err) {
-			return res.status(500).json(err.message);
+			return res.status(500).json({ Error: err.message });
 		}
 	}
 );
@@ -191,7 +204,7 @@ app.put(
 
 			return res.status(200).json({ watchlist: user.watchlist });
 		} catch (err) {
-			return res.status(500).json(err.message);
+			return res.status(500).json({ Error: err.message });
 		}
 	}
 );
@@ -270,9 +283,11 @@ app.put(
 			const updatedUser = await user.save();
 			return res.status(200).json(updatedUser.portfolio);
 		} catch (err) {
-			return res.status(500).json(err.message);
+			return res.status(500).json({ Error: err.message });
 		}
 	}
 );
 
-app.listen(PORT);
+app.listen(PORT, () => {
+	console.log(`Server is running on port ${PORT}`);
+});

@@ -1,0 +1,5 @@
+[
+  {"id":"bitcoin","symbol":"btc","name":"Bitcoin","image":"https://assets.coingecko.com/coins/images/1/large/bitcoin.png?1696501400","current_price":65000,"market_cap":1200000000000,"market_cap_rank":1,"price_change_percentage_24h":1.5},
+  {"id":"ethereum","symbol":"eth","name":"Ethereum","image":"https://assets.coingecko.com/coins/images/279/large/ethereum.png?1696501628","current_price":3500,"market_cap":400000000000,"market_cap_rank":2,"price_change_percentage_24h":-0.5},
+  {"id":"tether","symbol":"usdt","name":"Tether","image":"https://assets.coingecko.com/coins/images/325/large/tether.png?1696501661","current_price":1,"market_cap":100000000000,"market_cap_rank":3,"price_change_percentage_24h":0.01}
+]
