@@ -1,7 +1,7 @@
+require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const db = require("./db");
-require("dotenv").config();
 const jwt = require("jsonwebtoken");
 const User = require("./models/Users");
 const mockData = require("./mockData.json");
