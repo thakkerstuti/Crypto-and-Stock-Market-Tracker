@@ -34,7 +34,13 @@
     },
     {
       "src": "/(.*)",
-      "dest": "Client/$1"
+      "dest": "Client/$1",
+      "check": true
+    },
+    {
+      "src": "/(.*)",
+      "status": 200,
+      "dest": "Client/index.html"
     }
   ]
 }
