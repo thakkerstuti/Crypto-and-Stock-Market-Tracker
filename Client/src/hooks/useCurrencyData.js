@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { FRANKFURTER_API } from "../constants";
+import api from "../services/api";
 
 export default function useCurrencyData() {
 	const [currencyData, setCurrencyData] = useState([]);
@@ -11,15 +11,10 @@ export default function useCurrencyData() {
 			try {
 				setLoading(true);
 				setError(null);
-				const res = await fetch(FRANKFURTER_API);
-
-				const data = await res.json();
-				if (!res.ok) {
-					throw new Error("An Error Occured");
-				}
-				setCurrencyData(data);
+				const res = await api.get("/api/currency");
+				setCurrencyData(res.data);
 			} catch (err) {
-				setError(err);
+				setError(err.response?.data?.error || "Failed to fetch currency");
 			} finally {
 				setLoading(false);
 			}

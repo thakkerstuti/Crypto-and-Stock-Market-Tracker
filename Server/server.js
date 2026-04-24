@@ -26,7 +26,37 @@ app.use(passport.initialize());
 
 // Backend Cache for CoinGecko Proxy
 const coinCache = new Map();
+const currencyCache = new Map();
 const CACHE_DURATION = 5 * 60 * 1000;
+
+app.get("/api/currency", async (req, res) => {
+	const cacheKey = "latest-usd";
+	const cachedData = currencyCache.get(cacheKey);
+
+	if (cachedData && Date.now() - cachedData.timestamp < CACHE_DURATION) {
+		return res.json(cachedData.data);
+	}
+
+	try {
+		const url = "https://api.frankfurter.app/latest?from=USD";
+		console.log(`Fetching from Frankfurter: ${url}`);
+		const response = await fetch(url);
+
+		if (!response.ok) throw new Error("Frankfurter API error");
+
+		const data = await response.json();
+		currencyCache.set(cacheKey, {
+			data,
+			timestamp: Date.now(),
+		});
+
+		return res.json(data);
+	} catch (err) {
+		console.error("Currency Proxy Error:", err);
+		if (cachedData) return res.json(cachedData.data);
+		return res.status(500).json({ error: "Failed to fetch currency data" });
+	}
+});
 
 app.get("/api/coins", async (req, res) => {
 	const { ids, vs_currency = "usd" } = req.query;
