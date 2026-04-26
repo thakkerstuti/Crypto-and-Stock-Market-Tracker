@@ -1,7 +1,7 @@
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
-const db = require("./db");
+const connectDB = require("./db");
 const jwt = require("jsonwebtoken");
 const User = require("./models/Users");
 const mockData = require("./mockData.json");
@@ -320,6 +320,15 @@ app.put(
 	}
 );
 
-app.listen(PORT, () => {
-	console.log(`Server is running on port ${PORT}`);
-});
+const startServer = async () => {
+	try {
+		await connectDB();
+		app.listen(PORT, () => {
+			console.log(`Server is running on port ${PORT}`);
+		});
+	} catch (err) {
+		console.error("Failed to start server:", err.message);
+	}
+};
+
+startServer();

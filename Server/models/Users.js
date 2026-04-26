@@ -36,7 +36,8 @@ const UsersSchema = new mongoose.Schema({
 		},
 
 		default: {},
-	},
+}, {
+	bufferCommands: false,
 });
 
 UsersSchema.pre("save", async function (next) {
