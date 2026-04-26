@@ -10,7 +10,7 @@ import useCoins from "../hooks/useCoins";
 import useChart from "../hooks/useChart";
 import PieChartComponent from "../components/PieChartComponent";
 import BarChartComponent from "../components/BarChartComponent";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 
 const Dashboard = ({
 	watchlist,

@@ -6,7 +6,7 @@ import { useAuth } from "../context/AuthContext";
 import BrightnessMediumIcon from "@mui/icons-material/BrightnessMedium";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
 import useTheme from "../hooks/useTheme";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 
 const Header = ({ menu, toggleMenu, handleLogout }) => {
 	const { isAuthenticated } = useAuth();

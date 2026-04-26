@@ -6,7 +6,7 @@ import CoinGeckoAttribution from "../components/CoinGeckoAttribution";
 import { useAuth } from "../context/AuthContext";
 import useTopCoins from "../hooks/useTopCoins";
 import Searchbar from "../components/Searchbar";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 
 const Home = ({
 	watchlist,
