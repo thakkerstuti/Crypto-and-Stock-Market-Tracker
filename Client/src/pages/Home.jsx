@@ -20,11 +20,11 @@ const Home = ({
 	const { coins, loading, error } = useTopCoins();
 	const [search, setSearch] = useState("");
 
-	const filteredCoins = coins.filter(
+	const filteredCoins = Array.isArray(coins) ? coins.filter(
 		(coin) =>
-			coin.name.toLowerCase().includes(search.toLowerCase()) ||
-			coin.symbol.toLowerCase().includes(search.toLowerCase())
-	);
+			coin?.name?.toLowerCase().includes(search.toLowerCase()) ||
+			coin?.symbol?.toLowerCase().includes(search.toLowerCase())
+	) : [];
 
 	return (
 		<motion.div 

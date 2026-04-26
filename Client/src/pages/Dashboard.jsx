@@ -38,7 +38,7 @@ const Dashboard = ({
 	}, 0);
 
 	const currentValue = Object.keys(portfolio).reduce((acc, coinId) => {
-		const coinData = coins.find((c) => c.id === coinId);
+		const coinData = Array.isArray(coins) ? coins.find((c) => c.id === coinId) : null;
 		if (coinData && portfolio[coinId]) {
 			return acc + portfolio[coinId].coins * coinData.current_price;
 		}

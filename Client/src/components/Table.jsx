@@ -64,6 +64,7 @@ const Table = ({
 				)}
 				{!loading &&
 					!error &&
+					Array.isArray(coins) &&
 					coins.map((coin) => (
 						<CoinRow
 							key={coin.id}
