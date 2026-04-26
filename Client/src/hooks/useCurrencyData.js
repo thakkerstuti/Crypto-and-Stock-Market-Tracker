@@ -11,7 +11,7 @@ export default function useCurrencyData() {
 			try {
 				setLoading(true);
 				setError(null);
-				const res = await api.get("/api/currency");
+				const res = await api.get("/currency");
 				setCurrencyData(res.data);
 			} catch (err) {
 				setError(err.response?.data?.error || "Failed to fetch currency");

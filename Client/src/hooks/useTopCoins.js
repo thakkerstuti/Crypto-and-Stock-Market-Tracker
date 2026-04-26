@@ -12,7 +12,7 @@ export default function useTopCoins() {
 			setError(null);
 
 			try {
-				const response = await api.get("/api/coins");
+				const response = await api.get("/coins");
 				setCoins(response.data);
 			} catch (err) {
 				console.error("Error fetching top coins:", err);

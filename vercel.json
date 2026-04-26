@@ -11,36 +11,29 @@
       "config": { "distDir": "dist" }
     }
   ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self' https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; style-src 'self' 'unsafe-inline' https:; font-src 'self' https: data:; img-src 'self' https: data:; connect-src 'self' https:;"
+        }
+      ]
+    }
+  ],
   "routes": [
     {
       "src": "/api/(.*)",
       "dest": "Server/server.js"
     },
     {
-      "src": "/login",
-      "dest": "Server/server.js"
-    },
-    {
-      "src": "/register",
-      "dest": "Server/server.js"
-    },
-    {
-      "src": "/watchlist(.*)",
-      "dest": "Server/server.js"
-    },
-    {
-      "src": "/portfolio(.*)",
-      "dest": "Server/server.js"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "Client/$1",
-      "check": true
+      "handle": "filesystem"
     },
     {
       "src": "/(.*)",
       "status": 200,
-      "dest": "Client/index.html"
+      "dest": "/index.html"
     }
   ]
 }

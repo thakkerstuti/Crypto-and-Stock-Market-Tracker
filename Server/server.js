@@ -110,11 +110,11 @@ app.get("/api/coins", async (req, res) => {
 	}
 });
 
-app.get("/", (req, res) => {
+app.get("/api", (req, res) => {
 	return res.send("API is running");
 });
 
-app.post("/register", async (req, res) => {
+app.post("/api/register", async (req, res) => {
 	const { username, password } = req.body;
 	try {
 		const user = await User.findOne({ username });
@@ -132,7 +132,7 @@ app.post("/register", async (req, res) => {
 	}
 });
 
-app.post("/login", (req, res, next) => {
+app.post("/api/login", (req, res, next) => {
 	passport.authenticate("local", { session: false }, (err, user, info) => {
 		if (err) {
 			return res.status(500).json({ error: "Authentication error" });
@@ -158,7 +158,7 @@ app.post("/login", (req, res, next) => {
 });
 
 app.get(
-	"/watchlist",
+	"/api/watchlist",
 	passport.authenticate("jwt", { session: false }),
 	async (req, res) => {
 		try {
@@ -176,7 +176,7 @@ app.get(
 );
 
 app.get(
-	"/portfolio",
+	"/api/portfolio",
 	passport.authenticate("jwt", { session: false }),
 	async (req, res) => {
 		try {
@@ -194,7 +194,7 @@ app.get(
 );
 
 app.put(
-	"/watchlist/add",
+	"/api/watchlist/add",
 	passport.authenticate("jwt", { session: false }),
 	async (req, res) => {
 		const userId = req.user._id;
@@ -218,7 +218,7 @@ app.put(
 );
 
 app.put(
-	"/watchlist/remove",
+	"/api/watchlist/remove",
 	passport.authenticate("jwt", { session: false }),
 	async (req, res) => {
 		const userId = req.user._id;
@@ -242,7 +242,7 @@ app.put(
 );
 
 app.put(
-	"/portfolio/update",
+	"/api/portfolio/update",
 	passport.authenticate("jwt", { session: false }),
 	async (req, res) => {
 		const userId = req.user._id;

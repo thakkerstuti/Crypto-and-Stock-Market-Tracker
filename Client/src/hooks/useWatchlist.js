@@ -19,7 +19,7 @@ export default function useWatchlist(watchlist) {
 
 			try {
 				const coinIds = watchlist.join(",");
-				const response = await api.get(`/api/coins`, {
+				const response = await api.get(`/coins`, {
 					params: { ids: coinIds }
 				});
 				setCoins(response.data);

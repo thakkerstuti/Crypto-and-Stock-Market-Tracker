@@ -40,7 +40,7 @@ export default function useCoins(portfolio) {
 			}
 
 			try {
-				const response = await api.get(`/api/coins`, {
+				const response = await api.get(`/coins`, {
 					params: { ids: coinIds }
 				});
 
