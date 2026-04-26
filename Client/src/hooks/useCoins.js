@@ -46,11 +46,14 @@ export default function useCoins(portfolio) {
 
 				const data = response.data;
 				
-				// Update cache
-				coinCache.data[cacheKey] = data;
-				coinCache.timestamp = Date.now();
-				
-				setCoins(data);
+				if (Array.isArray(data)) {
+					// Update cache
+					coinCache.data[cacheKey] = data;
+					coinCache.timestamp = Date.now();
+					setCoins(data);
+				} else {
+					throw new Error("Invalid data format received");
+				}
 			} catch (err) {
 				console.error("Error fetching coins:", err);
 				

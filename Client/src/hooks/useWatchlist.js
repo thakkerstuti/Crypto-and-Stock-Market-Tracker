@@ -22,7 +22,11 @@ export default function useWatchlist(watchlist) {
 				const response = await api.get(`/coins`, {
 					params: { ids: coinIds }
 				});
-				setCoins(response.data);
+				if (Array.isArray(response.data)) {
+					setCoins(response.data);
+				} else {
+					throw new Error("Invalid watchlist data received");
+				}
 			} catch (err) {
 				console.error("Error fetching watchlist coins:", err);
 				if (err.code === 'ERR_NETWORK') {

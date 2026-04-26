@@ -13,7 +13,12 @@ export default function useTopCoins() {
 
 			try {
 				const response = await api.get("/coins");
-				setCoins(response.data);
+				if (Array.isArray(response.data)) {
+					setCoins(response.data);
+				} else {
+					console.error("Received non-array data:", response.data);
+					setError("Failed to fetch valid coin data");
+				}
 			} catch (err) {
 				console.error("Error fetching top coins:", err);
 				setError(err.response?.data?.error || "Failed to fetch coin data");
