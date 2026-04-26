@@ -34,8 +34,8 @@ const UsersSchema = new mongoose.Schema({
 				default: 0,
 			},
 		},
-
 		default: {},
+	},
 }, {
 	bufferCommands: false,
 });

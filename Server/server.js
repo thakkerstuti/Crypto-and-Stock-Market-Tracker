@@ -116,18 +116,22 @@ app.get("/api", (req, res) => {
 
 app.post("/api/register", async (req, res) => {
 	const { username, password } = req.body;
+	console.log(`📝 Registration attempt for username: ${username}`);
 	try {
 		const user = await User.findOne({ username });
 		if (user) {
+			console.warn(`⚠️ Registration failed: User ${username} already exists`);
 			return res.status(400).json({ Error: "User Already Exists" });
 		}
 
 		const newUser = new User({ username, password });
-		const response = await newUser.save();
+		await newUser.save();
+		console.log(`✅ User ${username} registered successfully`);
 		return res
 			.status(200)
 			.json({ message: "User Registered Successfully" });
 	} catch (err) {
+		console.error(`❌ Registration error for ${username}:`, err.message);
 		return res.status(500).json({ Error: err.message });
 	}
 });

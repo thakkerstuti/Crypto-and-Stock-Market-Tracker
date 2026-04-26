@@ -39,7 +39,13 @@ export default function useSignUp(username, password, confirmPassword) {
 			);
 			navigate("/login");
 		} catch (err) {
-			setError(err.response?.data?.Error || "Registration failed");
+			console.error("Signup error details:", err);
+			const errorMessage = 
+				err.response?.data?.Error || 
+				err.response?.data?.message || 
+				err.message || 
+				"Registration failed";
+			setError(errorMessage);
 		} finally {
 			setLoading(false);
 		}
