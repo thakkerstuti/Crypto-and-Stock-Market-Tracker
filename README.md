@@ -1,10 +1,11 @@
-# CryptoTrack
+# Crypto and Stock Market Tracker
 
 A web application to track real-time cryptocurrency prices, manage a personal portfolio, and maintain a watchlist of favorite coins.
 
 ## Table of Contents
 
 - [Description](#description)
+- [About / Why I Built This](#about--why-i-built-this)
 - [Live Demo](#live-demo)
 - [Features](#features)
 - [Tech Stack](#tech-stack)
@@ -15,7 +16,16 @@ A web application to track real-time cryptocurrency prices, manage a personal po
 
 ## Description
 
-CryptoTrack is a web application that allows users to track real-time cryptocurrency prices, manage their portfolio, and maintain a watchlist. Users can register, log in, add/remove coins to their portfolio or watchlist, and export their portfolio data as PDF or CSV reports. This project was developed as part of an internship at Ultimez Technology Pvt Ltd.
+Crypto and Stock Market Tracker is a web application that allows users to track real-time cryptocurrency prices, manage their portfolio, and maintain a watchlist. Users can register, log in, add/remove coins to their portfolio or watchlist, and export their portfolio data as PDF or CSV reports.
+
+## About / Why I Built This
+
+I built this project because I wanted to learn how to build and deploy a complete full-stack web application from scratch. Specifically, I wanted to master:
+- **Real-Time Data Handling & Caching:** Interfacing with third-party market APIs (CoinGecko, Frankfurter) efficiently. I implemented a custom in-memory caching proxy layer on the Node/Express backend to prevent hitting rate limits and fallback cleanly to mock data when needed.
+- **Dynamic Data Visualization:** Using charting libraries (Recharts) to show complex portfolio allocations and performance metrics dynamically.
+- **Full-Stack Deployment:** Configuring a monorepo setup for Vercel (frontend) and Render (backend).
+
+The hardest part of this project was **getting the deployment configuration and networking setup right**. Ensuring that routing between a frontend on Vercel and a backend on Render worked seamlessly (solving CORS and path routing through `vercel.json` rules) required substantial trial and error. Additionally, resolving network binding issues—specifically configuring Express to listen on host `0.0.0.0` to properly handle incoming IPv4/IPv6 connections from cloud environments—was a key learning experience. Overcoming these API routing and server-binding hurdles taught me how critical network configuration is for production-ready deployments.
 
 ## Live Demo
 
@@ -36,6 +46,7 @@ _Note: The backend is hosted on a free Render instance, so the initial server re
 - Export your portfolio report in both PDF and CSV formats.
 - View portfolio values in different fiat currencies (via Frankfurter API)
 - Dark mode support with theme persistence
+- Integrated Gemini AI Assistant for personalized portfolio suggestions and market insights
 
 ## Tech Stack
 
@@ -45,7 +56,7 @@ The project is built with the MERN stack and other modern technologies:
 - **Backend:** Node.js, Express.js
 - **Database:** MongoDB (with Mongoose)
 - **Authentication:** JWT, Passport.js
-- **APIs:** CoinGecko (crypto data), Frankfurter (currency conversion)
+- **APIs:** CoinGecko (crypto data), Frankfurter (currency conversion), Google Gemini API (AI chatbot)
 - **Key Libraries:**
     - `axios`: For making API requests.
     - `recharts`: For creating pie chart and bar chart.
@@ -102,8 +113,8 @@ Follow these instructions to set up and run the project locally on your machine.
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/JoyM268/CryptoTrack.git
-cd CryptoTrack
+git clone https://github.com/thakkerstuti/Crypto-and-Stock-Market-Tracker.git
+cd Crypto-and-Stock-Market-Tracker
 ```
 
 ### 2. Backend Setup
@@ -130,6 +141,7 @@ MONGODB_URI="mongodb://127.0.0.1:27017/cryptotrack"
 PORT=3000
 CLIENT="http://localhost:5173"
 JWT_SECRET="YOUR_JWT_SECRET"
+GEMINI_API_KEY="YOUR_GEMINI_API_KEY"
 ```
 
 #### Run the Backend Server
@@ -143,7 +155,7 @@ npm start
 In a new terminal, navigate to the client directory and install dependencies.
 
 ```bash
-# From the root CryptoTrack directory
+# From the root Crypto-and-Stock-Market-Tracker directory
 cd Client
 npm install
 ```
@@ -171,4 +183,4 @@ The application should now be running at **http://localhost:5173**.
 
 ## Contact
 
-For any questions or suggestions, please reach out to [joy.mascarenhas@outlook.com](mailto:joy.mascarenhas@outlook.com).
+For any questions, suggestions, or contributions, feel free to open an issue or connect on [GitHub](https://github.com/thakkerstuti).

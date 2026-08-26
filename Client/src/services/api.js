@@ -58,4 +58,11 @@ export const watchlistAPI = {
 	},
 };
 
+export const chatAPI = {
+	send: async (message, history = [], context = {}) => {
+		const response = await api.post("/chat", { message, history, context });
+		return response.data;
+	},
+};
+
 export default api;

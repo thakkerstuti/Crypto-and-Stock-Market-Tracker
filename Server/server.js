@@ -114,6 +114,118 @@ app.get("/api", (req, res) => {
 	return res.send("API is running");
 });
 
+app.post("/api/chat", async (req, res) => {
+	const { message, history = [], context = {} } = req.body;
+
+	if (!message) {
+		return res.status(400).json({ error: "Message is required" });
+	}
+
+	const apiKey = process.env.GEMINI_API_KEY;
+
+	if (!apiKey || apiKey.trim() === "") {
+		// Fallback/Warning mode for empty API Key
+		return res.json({
+			warning: true,
+			text: "⚠️ **Gemini API Key is missing!**\n\nTo enable the active AI Assistant and get real-time portfolio analysis, please follow these simple steps:\n1. Visit **[Google AI Studio](https://aistudio.google.com/)** and create a **free** Gemini API key.\n2. Open `Server/.env` and paste your key: `GEMINI_API_KEY=your_key_here`.\n3. Restart the server.\n\n*In the meantime, here's a simulated assistant response based on your query:* \n\n\"It looks like you asked about **" + message + "**. I'd love to help you track and analyze this crypto with precision! Please configure my API key in the backend environment file to unlock my full analysis capabilities.\""
+		});
+	}
+
+	try {
+		// Construct system instruction with live data context
+		const { portfolio = {}, coins = [], currency = "usd" } = context;
+
+		let systemInstruction = "You are CryptoTrack AI, a professional and highly intelligent cryptocurrency analyst and financial advisor. " +
+			"You help users manage and understand their cryptocurrency portfolios, track real-time market data, learn blockchain concepts, and analyze trends. " +
+			"Keep your answers engaging, clear, and professional. Use markdown formatting (like bold, bullet points, numbered lists, tables, and spacing) to make your messages look extremely premium and easy to read. " +
+			"Always be concise and direct. Do not give generic introductory or concluding remarks. Focus on giving high-value insights. \n\n";
+
+		// Inject live top coins context if available
+		if (coins && coins.length > 0) {
+			systemInstruction += `CURRENT LIVE MARKET DATA (Top Coins in ${currency.toUpperCase()}):\n`;
+			coins.slice(0, 15).forEach(coin => {
+				systemInstruction += `- **${coin.name} (${coin.symbol.toUpperCase()})**: Price: ${currency.toLowerCase() === "usd" ? "$" : ""}${coin.current_price?.toLocaleString()} | 24h Change: ${coin.price_change_percentage_24h?.toFixed(2)}% | Market Cap Rank: #${coin.market_cap_rank}\n`;
+			});
+			systemInstruction += "\n";
+		}
+
+		// Inject portfolio context if available
+		if (portfolio && Object.keys(portfolio).length > 0) {
+			systemInstruction += "USER'S PORTFOLIO HOLDINGS:\n";
+			for (const [coinId, data] of Object.entries(portfolio)) {
+				// Match against live coin details if available in coin list
+				const liveCoin = coins.find(c => c.id === coinId);
+				const currentPrice = liveCoin ? liveCoin.current_price : 0;
+				const currentVal = currentPrice * data.coins;
+				const profitLoss = currentVal - data.totalInvestment;
+				const profitLossPct = data.totalInvestment > 0 ? (profitLoss / data.totalInvestment) * 100 : 0;
+
+				systemInstruction += `- **${coinId.toUpperCase()}**: Coins owned: ${data.coins} | Total Invested: ${currency.toLowerCase() === "usd" ? "$" : ""}${data.totalInvestment?.toLocaleString()} | Current Value: ${currency.toLowerCase() === "usd" ? "$" : ""}${currentVal?.toLocaleString()} | Profit/Loss: ${profitLoss >= 0 ? "+" : ""}${currency.toLowerCase() === "usd" ? "$" : ""}${profitLoss?.toLocaleString()} (${profitLossPct >= 0 ? "+" : ""}${profitLossPct?.toFixed(2)}%)\n`;
+			}
+			systemInstruction += "\n";
+		} else {
+			systemInstruction += "The user has an empty portfolio currently or is not logged in. Encourage them to sign up, log in, or add coins to their portfolio to get customized, real-time portfolio analysis and suggestions!\n\n";
+		}
+
+		// Convert history to Gemini API format
+		// Gemini format expects: {"role": "user" | "model", "parts": [{"text": "..."}]}
+		const contents = [];
+		
+		// Add history
+		history.forEach(msg => {
+			contents.push({
+				role: msg.sender === "user" ? "user" : "model",
+				parts: [{ text: msg.text }]
+			});
+		});
+
+		// Add current message
+		contents.push({
+			role: "user",
+			parts: [{ text: message }]
+		});
+
+		// Make request to Gemini API
+		const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+		
+		const response = await fetch(geminiUrl, {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json"
+			},
+			body: JSON.stringify({
+				contents,
+				systemInstruction: {
+					parts: [{ text: systemInstruction }]
+				},
+				generationConfig: {
+					temperature: 0.7,
+					maxOutputTokens: 1000
+				}
+			})
+		});
+
+		if (!response.ok) {
+			const errorText = await response.text();
+			console.error("Gemini API Error details:", errorText);
+			throw new Error(`Gemini API responded with status ${response.status}`);
+		}
+
+		const data = await response.json();
+		const textResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+		if (!textResponse) {
+			throw new Error("No response content from Gemini API");
+		}
+
+		return res.json({ text: textResponse });
+	} catch (err) {
+		console.error("LLM Chat Route Error:", err);
+		return res.status(500).json({ error: "Failed to communicate with AI Assistant. Please check server logs." });
+	}
+});
+
+
 app.post("/api/register", async (req, res) => {
 	const { username, password } = req.body;
 	console.log(`📝 Registration attempt for username: ${username}`);

@@ -18,6 +18,8 @@ import { useAuth } from "./context/AuthContext";
 import { portfolioAPI, watchlistAPI } from "./services/api";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import AIChatbot from "./components/AIChatbot";
+import useTopCoins from "./hooks/useTopCoins";
 
 const App = () => {
 	const [menu, setMenu] = useState(false);
@@ -26,6 +28,7 @@ const App = () => {
 	const [form, setForm] = useState(false);
 	const [coinData, setCoinData] = useState({});
 	const [portfolio, setPortfolio] = useState({});
+	const { coins } = useTopCoins();
 	const navigate = useNavigate();
 
 	const handleLogout = () => {
@@ -256,6 +259,9 @@ const App = () => {
 					}
 				/>
 			</Routes>
+
+			<AIChatbot coins={coins} portfolio={portfolio} />
+
 			<ToastContainer
 				position="top-right"
 				autoClose={3000}
