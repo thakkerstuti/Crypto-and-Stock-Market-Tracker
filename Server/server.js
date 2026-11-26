@@ -279,35 +279,58 @@ app.post("/api/chat", async (req, res) => {
 		});
 
 		// Make request to Gemini API
-		// gemini-1.5-flash has been retired; model is configurable via GEMINI_MODEL
-		const geminiModel = process.env.GEMINI_MODEL || "gemini-2.5-flash";
-		const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${apiKey}`;
-		
-		const response = await fetch(geminiUrl, {
-			method: "POST",
-			headers: {
-				"Content-Type": "application/json"
+		// Google retires Gemini models over time (1.5-flash, then 2.5-flash). Try the
+		// configured/recommended model first and fall back to the "latest flash" alias
+		// if a model has been retired (404), so the chat keeps working.
+		const candidateModels = [
+			...new Set(
+				[process.env.GEMINI_MODEL, "gemini-3.8-flash", "gemini-flash-latest"].filter(Boolean)
+			),
+		];
+		const requestBody = JSON.stringify({
+			contents,
+			systemInstruction: {
+				parts: [{ text: systemInstruction }]
 			},
-			body: JSON.stringify({
-				contents,
-				systemInstruction: {
-					parts: [{ text: systemInstruction }]
-				},
-				generationConfig: {
-					temperature: 0.7,
-					maxOutputTokens: 1000
-				}
-			})
+			generationConfig: {
+				temperature: 0.7,
+				// Newer models spend part of the budget on internal reasoning; leave room for the answer
+				maxOutputTokens: 4096
+			}
 		});
 
-		if (!response.ok) {
+		let response;
+		for (const model of candidateModels) {
+			response = await fetch(
+				`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+				{
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+						// Send the key as a header so it never appears in URLs or request logs
+						"x-goog-api-key": apiKey
+					},
+					body: requestBody
+				}
+			);
+			if (response.ok) break;
+
 			const errorText = await response.text();
-			console.error("Gemini API Error details:", errorText);
+			console.error(`Gemini API Error details (model ${model}):`, errorText);
+			if (response.status !== 404) break; // only retry when the model is unavailable
+		}
+
+		if (!response.ok) {
 			throw new Error(`Gemini API responded with status ${response.status}`);
 		}
 
 		const data = await response.json();
-		const textResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
+		// Join all visible text parts (skip internal "thought" parts some models return)
+		const textResponse = (data.candidates?.[0]?.content?.parts || [])
+			.filter((part) => part.text && !part.thought)
+			.map((part) => part.text)
+			.join("")
+			.trim();
 
 		if (!textResponse) {
 			throw new Error("No response content from Gemini API");
