@@ -284,9 +284,18 @@ app.post("/api/chat", async (req, res) => {
 		// if a model has been retired (404), so the chat keeps working.
 		const candidateModels = [
 			...new Set(
-				[process.env.GEMINI_MODEL, "gemini-3.8-flash", "gemini-flash-latest"].filter(Boolean)
+				[
+					process.env.GEMINI_MODEL,
+					"gemini-3.8-flash",
+					"gemini-flash-latest",
+					"gemini-flash-lite-latest", // lighter model, usually available when others are busy
+				].filter(Boolean)
 			),
 		];
+		// 503 = model overloaded, 429 = rate limited, 500 = transient server error
+		const TRANSIENT = new Set([429, 500, 503]);
+		const ATTEMPTS_PER_MODEL = 2;
+		const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 		const requestBody = JSON.stringify({
 			contents,
 			systemInstruction: {
@@ -299,28 +308,48 @@ app.post("/api/chat", async (req, res) => {
 			}
 		});
 
+		// Try each model; retry briefly on temporary overload, move to the next model
+		// if it stays busy or has been retired (404). Stop on real errors (bad key, etc.).
 		let response;
-		for (const model of candidateModels) {
-			response = await fetch(
-				`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
-				{
-					method: "POST",
-					headers: {
-						"Content-Type": "application/json",
-						// Send the key as a header so it never appears in URLs or request logs
-						"x-goog-api-key": apiKey
-					},
-					body: requestBody
-				}
-			);
-			if (response.ok) break;
+		let fatal = false;
+		modelLoop: for (const model of candidateModels) {
+			for (let attempt = 1; attempt <= ATTEMPTS_PER_MODEL; attempt++) {
+				response = await fetch(
+					`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+					{
+						method: "POST",
+						headers: {
+							"Content-Type": "application/json",
+							// Send the key as a header so it never appears in URLs or request logs
+							"x-goog-api-key": apiKey
+						},
+						body: requestBody
+					}
+				);
+				if (response.ok) break modelLoop;
 
-			const errorText = await response.text();
-			console.error(`Gemini API Error details (model ${model}):`, errorText);
-			if (response.status !== 404) break; // only retry when the model is unavailable
+				const errorText = await response.text();
+				console.error(
+					`Gemini API Error details (model ${model}, attempt ${attempt}):`,
+					errorText.slice(0, 500)
+				);
+
+				if (response.status === 404) continue modelLoop; // model retired -> next model
+				if (!TRANSIENT.has(response.status)) {
+					fatal = true; // e.g. 400 invalid key, 403 permission denied
+					break modelLoop;
+				}
+				if (attempt < ATTEMPTS_PER_MODEL) await sleep(1000 * attempt);
+			}
 		}
 
 		if (!response.ok) {
+			if (!fatal) {
+				// Every model was busy: tell the user instead of a generic failure
+				return res.status(503).json({
+					error: "The AI assistant is very busy right now. Please try again in a minute.",
+				});
+			}
 			throw new Error(`Gemini API responded with status ${response.status}`);
 		}
 

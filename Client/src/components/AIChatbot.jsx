@@ -90,11 +90,15 @@ const AIChatbot = ({ coins = [], portfolio = {} }) => {
 			]);
 		} catch (error) {
 			console.error("AI Chat Error:", error);
+			// Show the server's reason when it sent one (e.g. "AI is busy, try again")
+			const serverMessage = error.response?.data?.error;
 			setMessages((prev) => [
 				...prev,
 				{
 					sender: "ai",
-					text: "❌ **Failed to connect with AI Assistant.**\n\nPlease check that your Express server is running, or verify your network connection.",
+					text: serverMessage
+						? `⏳ ${serverMessage}`
+						: "❌ **Failed to connect with AI Assistant.**\n\nThe server may be waking up (this can take up to a minute on the free plan). Please try again shortly.",
 				},
 			]);
 		} finally {
