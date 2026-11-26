@@ -21,7 +21,7 @@ Crypto and Stock Market Tracker is a web application that allows users to track 
 ## About / Why I Built This
 
 I built this project because I wanted to learn how to build and deploy a complete full-stack web application from scratch. Specifically, I wanted to master:
-- **Real-Time Data Handling & Caching:** Interfacing with third-party market APIs (CoinGecko, Frankfurter) efficiently. I implemented a custom in-memory caching proxy layer on the Node/Express backend to prevent hitting rate limits and fallback cleanly to mock data when needed.
+- **Real-Time Data Handling & Caching:** Interfacing with third-party market APIs (CoinGecko, Frankfurter) efficiently. The Node/Express backend acts as a caching proxy: every page is served from one shared market snapshot (top 250 coins), concurrent requests share a single upstream call, a `429` triggers a cool-down, and the last good snapshot is persisted to disk so the app keeps showing real prices even when rate-limited.
 - **Dynamic Data Visualization:** Using charting libraries (Recharts) to show complex portfolio allocations and performance metrics dynamically.
 - **Full-Stack Deployment:** Configuring a monorepo setup for Vercel (frontend) and Render (backend).
 
@@ -32,7 +32,7 @@ The hardest part of this project was **getting the deployment configuration and 
 The application is deployed and publicly accessible:
 
 - **Frontend (Vercel):** [`https://cryptotrack-ultimez.vercel.app/`](https://cryptotrack-ultimez.vercel.app/)
-- **Backend (Render):** [`https://cryptotrack-rhun.onrender.com`](https://cryptotrack-rhun.onrender.com)
+- **Backend API (Render):** [`https://crypto-and-stock-market-tracker.onrender.com/api`](https://crypto-and-stock-market-tracker.onrender.com/api)
 
 _Note: The backend is hosted on a free Render instance, so the initial server response might be slow as the instance "wakes up" from a sleep state._
 
@@ -108,7 +108,7 @@ Follow these instructions to set up and run the project locally on your machine.
 
 - Node.js (v18 or later recommended)
 - Git
-- MongoDB Community Server
+- A MongoDB database — either a free [MongoDB Atlas](https://www.mongodb.com/atlas) cluster (recommended) or a local MongoDB Community Server
 
 ### 1. Clone the Repository
 
@@ -126,23 +126,30 @@ cd Server
 npm install
 ```
 
-#### Setup Local MongoDB
+#### Set Up MongoDB
 
-1.  Download and install [MongoDB Community Server](https://www.mongodb.com/try/download/community) if you haven't already.
-2.  Start the MongoDB service on your machine. On most systems, you can run `mongod` in a terminal.
-3.  The backend will connect to the default local URI.
+**Option A — MongoDB Atlas (recommended):**
+1. Create a free M0 cluster at [cloud.mongodb.com](https://cloud.mongodb.com).
+2. Under **Database Access**, create a database user.
+3. Under **Network Access**, add `0.0.0.0/0` (required for cloud hosts like Render, which have no fixed IP).
+4. Click **Connect → Drivers** and copy the connection string, adding the database name `cryptotrack` after `.net/`.
+
+**Option B — Local MongoDB:** install [MongoDB Community Server](https://www.mongodb.com/try/download/community), start it with `mongod`, and use `mongodb://127.0.0.1:27017/cryptotrack`.
 
 #### Environment Variables
 
 Create a `.env` file in the `Server` directory and add the following variables.
 
 ```env
-MONGODB_URI="mongodb://127.0.0.1:27017/cryptotrack"
+MONGODB_URI="mongodb+srv://<user>:<password>@<cluster>.mongodb.net/cryptotrack?retryWrites=true&w=majority"
 PORT=3000
 CLIENT="http://localhost:5173"
-JWT_SECRET="YOUR_JWT_SECRET"
-GEMINI_API_KEY="YOUR_GEMINI_API_KEY"
+JWT_SECRET="YOUR_JWT_SECRET"          # generate: node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
+GEMINI_API_KEY="YOUR_GEMINI_API_KEY"  # optional, enables the AI assistant (free key: https://aistudio.google.com)
+COINGECKO_API_KEY=""                  # optional, free Demo key avoids rate limits (https://www.coingecko.com/en/api)
 ```
+
+The server starts even if MongoDB is unreachable: market data, currency rates and the AI assistant keep working, while login/portfolio/watchlist return `503` until the database connects (it retries every 15 seconds).
 
 #### Run the Backend Server
 
@@ -165,7 +172,7 @@ npm install
 Create a `.env` file in the `Client` directory and add the following:
 
 ```env
-VITE_API_URL="http://localhost:3000"
+VITE_API_URL="http://localhost:3000/api"
 ```
 
 #### Run the Frontend
@@ -176,10 +183,34 @@ npm run dev
 
 The application should now be running at **http://localhost:5173**.
 
+## Deployment
+
+The frontend is deployed on **Vercel** and the backend on **Render**, both from this repository.
+
+### Backend — Render (Web Service)
+
+| Setting | Value |
+|---|---|
+| Root Directory | `Server` |
+| Build Command | `npm install` |
+| Start Command | `npm start` |
+| Environment | `MONGODB_URI`, `JWT_SECRET`, `CLIENT` (the Vercel URL, no trailing slash), optional `GEMINI_API_KEY`, `COINGECKO_API_KEY` |
+
+Render sets `PORT` automatically. Health check: `GET /api` returns `API is running`.
+
+### Frontend — Vercel
+
+Set the environment variable below, then redeploy:
+
+```env
+VITE_API_URL="https://crypto-and-stock-market-tracker.onrender.com/api"
+```
+
 ## Attributions
 
 - Cryptocurrency data provided by [CoinGecko API](https://www.coingecko.com/en/api).
-- Currency conversion powered by [Frankfurter API](https://www.frankfurter.app/).
+- Currency conversion powered by [Frankfurter API](https://frankfurter.dev/).
+- AI assistant powered by [Google Gemini](https://ai.google.dev/).
 
 ## Contact
 
