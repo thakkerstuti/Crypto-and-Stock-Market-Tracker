@@ -1,6 +1,16 @@
 import axios from "axios";
 
-const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? window.location.origin + "/api" : "http://localhost:3000/api");
+// All backend routes live under /api. Normalise VITE_API_URL so it works whether
+// it is set as "https://host" or "https://host/api" (with or without a trailing slash).
+const withApiPath = (url) => {
+	const base = url.replace(/\/+$/, "");
+	return base.endsWith("/api") ? base : `${base}/api`;
+};
+
+const API_URL = withApiPath(
+	import.meta.env.VITE_API_URL ||
+		(import.meta.env.PROD ? window.location.origin : "http://localhost:3000")
+);
 
 const api = axios.create({
 	baseURL: API_URL,
