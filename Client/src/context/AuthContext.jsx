@@ -24,6 +24,14 @@ export const AuthProvider = ({ children }) => {
       setUser(JSON.parse(userData));
     }
     setLoading(false);
+
+    // Fired by the API client when the server rejects an expired token
+    const handleExpired = () => {
+      setIsAuthenticated(false);
+      setUser(null);
+    };
+    window.addEventListener('auth:expired', handleExpired);
+    return () => window.removeEventListener('auth:expired', handleExpired);
   }, []);
 
   const login = (token, userData) => {

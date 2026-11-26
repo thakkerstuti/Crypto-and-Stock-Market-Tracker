@@ -3,12 +3,11 @@ require("dotenv").config();
 
 const MONGODB_URI = process.env.MONGODB_URI;
 
-if (!MONGODB_URI) {
-    console.error("❌ MONGODB_URI is not defined in environment variables");
-    process.exit(1);
-}
-
 const connectDB = async () => {
+    if (!MONGODB_URI) {
+        // Don't kill the process: market data and AI chat don't need the database
+        throw new Error("MONGODB_URI is not defined in Server/.env");
+    }
     try {
         await mongoose.connect(MONGODB_URI, {
             serverSelectionTimeoutMS: 5000,
@@ -28,7 +27,7 @@ mongoose.connection.on("connected", () => {
 });
 
 mongoose.connection.on("error", (err) => {
-    console.error("🔴 MongoDB Connection Error:", err);
+    console.error("🔴 MongoDB Connection Error:", err.message);
 });
 
 mongoose.connection.on("disconnected", () => {

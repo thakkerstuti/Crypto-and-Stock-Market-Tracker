@@ -1,4 +1,7 @@
 require("dotenv").config();
+const fs = require("fs");
+const path = require("path");
+const mongoose = require("mongoose");
 const express = require("express");
 const cors = require("cors");
 const connectDB = require("./db");
@@ -26,89 +29,172 @@ app.use(express.json());
 const passport = require("./auth");
 app.use(passport.initialize());
 
-// Backend Cache for CoinGecko Proxy
-const coinCache = new Map();
-const currencyCache = new Map();
-const CACHE_DURATION = 5 * 60 * 1000;
+// ---------------------------------------------------------------------------
+// Market data proxy (CoinGecko) — rate-limit friendly
+//
+// Instead of one upstream call per unique `ids` combination (which burned
+// through CoinGecko's free-tier limit quickly), we fetch the top 250 coins once
+// and answer every request (Home, Dashboard, Watchlist, AI chat) from that
+// shared snapshot. Concurrent requests share a single in-flight fetch, a 429
+// triggers a cool-down, and the last good snapshot is persisted to disk so a
+// rate limit or outage still serves real (slightly stale) prices.
+// ---------------------------------------------------------------------------
+const COINGECKO_BASE = "https://api.coingecko.com/api/v3";
+const MARKET_TTL = 2 * 60 * 1000; // refresh at most every 2 minutes
+const RATE_LIMIT_COOLDOWN = 60 * 1000; // back off for 60s after a 429
+const CACHE_DIR = path.join(__dirname, ".cache");
+const MARKET_SNAPSHOT = path.join(CACHE_DIR, "market.json");
+const CURRENCY_SNAPSHOT = path.join(CACHE_DIR, "currency.json");
 
-app.get("/api/currency", async (req, res) => {
-	const cacheKey = "latest-usd";
-	const cachedData = currencyCache.get(cacheKey);
-
-	if (cachedData && Date.now() - cachedData.timestamp < CACHE_DURATION) {
-		return res.json(cachedData.data);
-	}
-
+const readSnapshot = (file) => {
 	try {
-		const url = "https://api.frankfurter.app/latest?from=USD";
-		console.log(`Fetching from Frankfurter: ${url}`);
-		const response = await fetch(url);
-
-		if (!response.ok) throw new Error("Frankfurter API error");
-
-		const data = await response.json();
-		currencyCache.set(cacheKey, {
-			data,
-			timestamp: Date.now(),
-		});
-
-		return res.json(data);
-	} catch (err) {
-		console.error("Currency Proxy Error:", err);
-		if (cachedData) return res.json(cachedData.data);
-		return res.status(500).json({ error: "Failed to fetch currency data" });
+		return JSON.parse(fs.readFileSync(file, "utf8"));
+	} catch {
+		return null;
 	}
-});
+};
+
+const writeSnapshot = (file, value) => {
+	try {
+		fs.mkdirSync(CACHE_DIR, { recursive: true });
+		fs.writeFileSync(file, JSON.stringify(value));
+	} catch (err) {
+		console.warn("Could not persist cache snapshot:", err.message);
+	}
+};
+
+// Start from the last persisted snapshot (timestamp 0 => refresh on first use)
+let market = { data: readSnapshot(MARKET_SNAPSHOT)?.data || mockData, timestamp: 0 };
+let marketInFlight = null;
+const extraCoins = new Map(); // coins outside the top 250: id -> { data, timestamp }
+let rateLimitedUntil = 0;
+
+async function coingecko(pathAndQuery) {
+	if (Date.now() < rateLimitedUntil) {
+		throw new Error("CoinGecko cool-down active (recent rate limit)");
+	}
+	const headers = { accept: "application/json" };
+	if (process.env.COINGECKO_API_KEY) {
+		headers["x-cg-demo-api-key"] = process.env.COINGECKO_API_KEY;
+	}
+	const response = await fetch(`${COINGECKO_BASE}${pathAndQuery}`, { headers });
+	if (response.status === 429) {
+		rateLimitedUntil = Date.now() + RATE_LIMIT_COOLDOWN;
+		throw new Error("CoinGecko rate limit hit (429)");
+	}
+	if (!response.ok) throw new Error(`CoinGecko responded ${response.status}`);
+	return response.json();
+}
+
+async function getMarket() {
+	if (Date.now() - market.timestamp < MARKET_TTL) return market.data;
+
+	if (!marketInFlight) {
+		marketInFlight = coingecko(
+			"/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=250&page=1&sparkline=false"
+		)
+			.then((data) => {
+				if (!Array.isArray(data) || data.length === 0) throw new Error("Empty market data");
+				market = { data, timestamp: Date.now() };
+				writeSnapshot(MARKET_SNAPSHOT, market);
+			})
+			.catch((err) => {
+				console.warn(`Market refresh failed, serving cached data: ${err.message}`);
+			})
+			.finally(() => {
+				marketInFlight = null;
+			});
+	}
+	await marketInFlight;
+	return market.data;
+}
+
+async function getCoinsByIds(ids) {
+	const data = await getMarket();
+	const byId = new Map(data.map((c) => [c.id, c]));
+
+	// Coins outside the top 250 are fetched (once per TTL) in a single call
+	const missing = ids.filter(
+		(id) =>
+			!byId.has(id) &&
+			!(extraCoins.has(id) && Date.now() - extraCoins.get(id).timestamp < MARKET_TTL)
+	);
+	if (missing.length > 0) {
+		try {
+			const fetched = await coingecko(
+				`/coins/markets?vs_currency=usd&ids=${encodeURIComponent(missing.join(","))}&sparkline=false`
+			);
+			for (const coin of fetched) {
+				extraCoins.set(coin.id, { data: coin, timestamp: Date.now() });
+			}
+		} catch (err) {
+			console.warn(`Fetching extra coins failed, using cached data: ${err.message}`);
+		}
+	}
+
+	return ids
+		.map((id) => byId.get(id) || extraCoins.get(id)?.data)
+		.filter(Boolean)
+		.sort((a, b) => (a.market_cap_rank ?? Infinity) - (b.market_cap_rank ?? Infinity));
+}
 
 app.get("/api/coins", async (req, res) => {
-	const { ids, vs_currency = "usd" } = req.query;
-	const cacheKey = `${ids}-${vs_currency}`;
-	
-	const cachedData = coinCache.get(cacheKey);
-	if (cachedData && (Date.now() - cachedData.timestamp < CACHE_DURATION)) {
-		return res.json(cachedData.data);
+	try {
+		const ids = [
+			...new Set(
+				String(req.query.ids || "")
+					.split(",")
+					.map((id) => id.trim().toLowerCase())
+					.filter(Boolean)
+			),
+		];
+
+		if (ids.length > 0) {
+			return res.json(await getCoinsByIds(ids));
+		}
+		const data = await getMarket();
+		return res.json(data.slice(0, 100));
+	} catch (err) {
+		console.error("Coins proxy error:", err);
+		return res.json(market.data.slice(0, 100));
+	}
+});
+
+// Currency rates (Frankfurter moved from api.frankfurter.app to api.frankfurter.dev/v1)
+const CURRENCY_TTL = 60 * 60 * 1000; // ECB rates update once a day
+let currency = readSnapshot(CURRENCY_SNAPSHOT) || { data: null, timestamp: 0 };
+currency.timestamp = 0;
+
+app.get("/api/currency", async (req, res) => {
+	if (currency.data && Date.now() - currency.timestamp < CURRENCY_TTL) {
+		return res.json(currency.data);
 	}
 
 	try {
-		let url = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=${vs_currency}&order=market_cap_desc&sparkline=false`;
-		if (ids) {
-			url += `&ids=${ids}`;
-		} else {
-			url += `&per_page=100&page=1`;
-		}
-
-		console.log(`Fetching from CoinGecko: ${url}`);
-		const response = await fetch(url);
-		
-		if (response.status === 429) {
-			console.warn("CoinGecko Rate Limit Hit!");
-			// If backend is also rate limited, serve stale cache if available
-			if (cachedData) {
-				console.log("Serving stale cache due to rate limit");
-				return res.json(cachedData.data);
-			}
-			console.log("Serving mock data due to rate limit");
-			return res.json(mockData);
-		}
-
-		if (!response.ok) throw new Error("CoinGecko API error");
-
+		const response = await fetch("https://api.frankfurter.dev/v1/latest?base=USD");
+		if (!response.ok) throw new Error(`Frankfurter responded ${response.status}`);
 		const data = await response.json();
-		
-		// Update cache
-		coinCache.set(cacheKey, {
-			data,
-			timestamp: Date.now()
-		});
-
+		currency = { data, timestamp: Date.now() };
+		writeSnapshot(CURRENCY_SNAPSHOT, currency);
 		return res.json(data);
 	} catch (err) {
-		console.error("Proxy Error:", err);
-		if (cachedData) return res.json(cachedData.data);
-		console.log("Serving mock data due to proxy error");
-		return res.json(mockData);
+		console.warn(`Currency refresh failed: ${err.message}`);
+		// Fall back to last known rates, or USD-only so the UI keeps working
+		return res.json(currency.data || { base: "USD", rates: {} });
 	}
 });
+
+// Database-backed routes need a live MongoDB connection; fail fast with a clear message
+const requireDB = (req, res, next) => {
+	if (mongoose.connection.readyState === 1) return next();
+	const message =
+		"Database is not connected. Check MONGODB_URI in Server/.env and that MongoDB is running.";
+	return res.status(503).json({ error: message, Error: message });
+};
+app.use(
+	["/api/register", "/api/login", "/api/watchlist", "/api/portfolio"],
+	requireDB
+);
 
 app.get("/api", (req, res) => {
 	return res.send("API is running");
@@ -133,7 +219,14 @@ app.post("/api/chat", async (req, res) => {
 
 	try {
 		// Construct system instruction with live data context
-		const { portfolio = {}, coins = [], currency = "usd" } = context;
+		const { portfolio = {} } = context;
+		// All prices from the proxy are in USD, so label them as USD regardless of the UI currency
+		const currency = "usd";
+		// Use the server's shared market cache (no extra API calls) and include held coins
+		// that may sit outside the top list, so P/L is never computed against a price of 0.
+		const topCoins = await getMarket().catch(() => market.data);
+		const heldCoins = await getCoinsByIds(Object.keys(portfolio || {})).catch(() => []);
+		const coins = [...topCoins, ...heldCoins.filter((h) => !topCoins.some((c) => c.id === h.id))];
 
 		let systemInstruction = "You are CryptoTrack AI, a professional and highly intelligent cryptocurrency analyst and financial advisor. " +
 			"You help users manage and understand their cryptocurrency portfolios, track real-time market data, learn blockchain concepts, and analyze trends. " +
@@ -186,7 +279,9 @@ app.post("/api/chat", async (req, res) => {
 		});
 
 		// Make request to Gemini API
-		const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+		// gemini-1.5-flash has been retired; model is configurable via GEMINI_MODEL
+		const geminiModel = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+		const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${apiKey}`;
 		
 		const response = await fetch(geminiUrl, {
 			method: "POST",
@@ -436,15 +531,23 @@ app.put(
 	}
 );
 
-const startServer = async () => {
+// Start the HTTP server immediately so market data, currency and AI chat work
+// even if MongoDB is unavailable; keep retrying the DB connection in the background.
+const DB_RETRY_MS = 15 * 1000;
+
+const connectWithRetry = async () => {
 	try {
 		await connectDB();
-		app.listen(PORT, "0.0.0.0", () => {
-			console.log(`Server is running on port ${PORT}`);
-		});
 	} catch (err) {
-		console.error("Failed to start server:", err.message);
+		console.error(
+			`MongoDB unavailable (${err.message}). Login/portfolio/watchlist return 503 until it connects. Retrying in ${DB_RETRY_MS / 1000}s...`
+		);
+		setTimeout(connectWithRetry, DB_RETRY_MS);
 	}
 };
 
-startServer();
+app.listen(PORT, "0.0.0.0", () => {
+	console.log(`Server is running on port ${PORT}`);
+	getMarket(); // warm the market cache
+});
+connectWithRetry();

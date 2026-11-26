@@ -17,6 +17,20 @@ api.interceptors.request.use((config) => {
 	return config;
 });
 
+// An expired/invalid JWT returns 401: clear the session so the app sends the
+// user back to login instead of showing a dashboard that silently fails.
+api.interceptors.response.use(
+	(response) => response,
+	(error) => {
+		if (error.response?.status === 401 && localStorage.getItem("token")) {
+			localStorage.removeItem("token");
+			localStorage.removeItem("user");
+			window.dispatchEvent(new Event("auth:expired"));
+		}
+		return Promise.reject(error);
+	}
+);
+
 export const authAPI = {
 	login: async (username, password) => {
 		const response = await api.post("/login", { username, password });
