@@ -31,7 +31,7 @@ The hardest part of this project was **getting the deployment configuration and 
 
 The application is deployed and publicly accessible:
 
-- **Frontend (Vercel):** [`https://cryptotrack-ultimez.vercel.app/`](https://cryptotrack-ultimez.vercel.app/)
+- **Frontend (Vercel):** [`https://crypto-and-stock-market-tracker-ashy.vercel.app`](https://crypto-and-stock-market-tracker-ashy.vercel.app/)
 - **Backend API (Render):** [`https://crypto-and-stock-market-tracker.onrender.com/api`](https://crypto-and-stock-market-tracker.onrender.com/api)
 
 _Note: The backend is hosted on a free Render instance, so the initial server response might be slow as the instance "wakes up" from a sleep state._

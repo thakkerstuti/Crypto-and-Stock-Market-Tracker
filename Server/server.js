@@ -19,7 +19,7 @@ app.use(
 			"http://localhost:5174",
 			"http://127.0.0.1:5173",
 			"http://127.0.0.1:5174",
-			"https://cryptotrack-ultimez.vercel.app",
+			"https://crypto-and-stock-market-tracker-ashy.vercel.app",
 		].filter(Boolean),
 		credentials: true,
 	})
